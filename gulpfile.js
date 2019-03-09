@@ -18,13 +18,14 @@ const reload = browserSync.reload;
 const tsProject = ts.createProject("./tsconfig.json");
 const destDir = "dist";
 let paths = {
-  static: ["src/*.html", "src/favicon.*", "src/manifest.json"],
+  static: ["src/*.html", "src/favicon.png", "src/manifest.json"],
   scripts: {
     src: "src/**/*.ts",
     entry: "src/app/main.ts",
     vendor: "src/vendor/**/*",
     vendorDest: `${destDir}/vendor/`,
-    bundleJsName: "js/bundle.js"
+    bundleJsName: "js/bundle.js",
+    bundleJsDest: `${destDir}/js/`,
   },
   images: {
     src: "src/assets/**/*",
@@ -51,7 +52,14 @@ let watchedBrowserify = watchify(
 );
 function bundle() {
   return (
-    watchedBrowserify
+    browserify({
+      basedir: ".",
+      debug: true,
+      entries: [paths.scripts.entry],
+      cache: {},
+      packageCache: {}
+    })
+      .plugin(tsify)
       .transform("babelify", {
         presets: ["es2015"],
         extensions: [".ts"]
@@ -60,8 +68,8 @@ function bundle() {
       .pipe(source(paths.scripts.bundleJsName))
       .pipe(buffer())
       .pipe(sourcemaps.init({ loadMaps: true }))
-      // .pipe(uglify())
       .pipe(sourcemaps.write("./"))
+      // .pipe(uglify())
       .pipe(gulp.dest(destDir))
   );
 }
@@ -121,6 +129,7 @@ function watch(done) {
   gulp.watch(paths.images.src, images);
   gulp.watch(paths.scripts.vendor, copyJsVendor);
   gulp.watch(destDir + "/**/*").on("change", reload);
+  done();
 }
 //gulp.series|4.0 顺序执行
 //gulp.parallel|4.0 并行
